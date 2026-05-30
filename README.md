@@ -12,14 +12,14 @@ When you iterate with Claude over many turns — building a webapp, designing a 
 
 ### Option 1: Download a pre-built `.plugin` file (recommended)
 
-1. Go to the [Releases](https://github.com/YOUR_USERNAME/chat-decisions/releases) page.
+1. Go to the [Releases](https://github.com/<your-real-handle>/chat-decisions/releases) page.
 2. Download the latest `chat-decisions.plugin`.
 3. In Cowork: drop the file into a chat, then click "Save plugin."
 
 ### Option 2: Build from source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/chat-decisions.git
+git clone https://github.com/<your-real-handle>/chat-decisions.git
 cd chat-decisions
 ./build.sh
 ```
