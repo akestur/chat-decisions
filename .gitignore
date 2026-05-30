@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python (in case scripts/ grows)
+__pycache__/
+*.pyc
+
+# Build artifacts — distribute via GitHub Releases, not source tree
+*.plugin
+*.skill
