@@ -8,6 +8,10 @@ When you iterate with Claude over many turns — building a webapp, designing a 
 - Rejected options **branch off** as short dead-ends.
 - **Pivot badges** mark moments where you abandoned all options and changed direction.
 
+![Example output — a slice from a real chat](./preview.png)
+
+*A slice from a chat where the plugin was used to recap UI design decisions for a webapp.*
+
 ## Install
 
 ### Option 1: Download a pre-built `.plugin` file (recommended)
