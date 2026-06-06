@@ -1,6 +1,6 @@
 {
   "name": "chat-decisions",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Visualize the decisions you've made in the current chat as an interactive tree. Picked options form the trunk, rejected options branch off as dead-ends, and pivot badges mark where you abandoned all options and changed direction. Invoke explicitly via the slash command only; do not auto-invoke from natural-language paraphrases.",
   "author": {
     "name": "Akhil",

@@ -58,7 +58,7 @@ Field guide:
 
 - `n` — sequence number, starting at 1, in chronological order.
 - `q` — a 5–8 word question in sentence case, ending with `?`. Should be readable on its own (a user scanning the tree should understand what was being decided without having to read the surrounding chat). Avoid jargon if a shorter phrase works.
-- `opts` — array of option labels. Abbreviate each to **15–25 characters** so they fit in the rendered tree. The labels need to be informative but compact — "User-run extractor" not "Have the user run an extractor script outside Claude". Keep them in the order you originally presented them.
+- `opts` — array of option labels. The indented layout gives each label its own row, so you have generous horizontal room — aim for **clear, readable labels up to ~50 characters** rather than terse abbreviations. "Have the user run an extractor script" reads better than "User-run extractor". Keep them in the order you originally presented them.
 - `picked` — integer index (0-based) of the option the user picked. `null` if the user pivoted.
 - `pivot` — only set when `picked` is `null`. A short sentence (~6–12 words) describing the redirect. Example: `"Refined to USER decisions, not Claude's"`. When `picked` is an integer, set `pivot` to `null`.
 
@@ -103,21 +103,23 @@ The shell defines fallback values for the CSS variables that the host UI normall
 
 <style>
 .sr-only { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+#tree .row { fill: transparent; transition: fill 0.12s ease; }
+#tree .row:hover { fill: var(--color-background-secondary); }
 </style>
 
 <div style="padding: 0.5rem 0 1rem;">
   <div style="font-size: 18px; font-weight: 500;">Decisions in this chat</div>
   <div style="font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; line-height: 1.5;">
-    Trunk runs along the picked path. Side branches show rejected options. Pivot badges mark where you abandoned all options and changed direction.
+    A single spine runs straight down through every decision in order. Options branch to the right; the one you chose is marked. Pivot tags show where you abandoned the options and changed direction.
   </div>
 </div>
 
 <svg id="tree" viewBox="0 0 680 1300" style="width: 100%; max-width: 680px; display: block;"></svg>
 
 <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--color-text-tertiary); margin-top: 1rem; padding-top: 0.75rem; border-top: 0.5px solid var(--color-border-tertiary);">
-  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--color-text-info);"></span>picked</span>
-  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--color-text-tertiary);"></span>rejected</span>
-  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; padding: 1px 6px; background: var(--color-background-warning); border-radius: 4px; font-weight: 500; color: var(--color-text-primary);">↳ pivot</span></span>
+  <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--color-text-info);"></span>chosen</span>
+  <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--color-text-tertiary); box-sizing: border-box;"></span>not taken</span>
+  <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; padding: 1px 6px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; font-weight: 500; color: var(--color-text-secondary);">↳ pivot</span></span>
 </div>
 
 <script>
@@ -125,11 +127,19 @@ const decisions = __DECISIONS_DATA__;
 
 const NS = 'http://www.w3.org/2000/svg';
 const svg = document.getElementById('tree');
-const W = 680, CX = W / 2;
-const TRUNK = 'var(--color-text-info)';
-const BRANCH = 'var(--color-border-tertiary)';
+const W = 680;
+const SPINE_X = 26;   // x of the vertical spine + decision nodes
+const OPT_X = 60;     // x of the option dots
+const Q_X = 44;       // x where the question header starts
+const LABEL_X = 78;   // x where option labels start
+const ACCENT = 'var(--color-text-info)';
+const SPINE = 'var(--color-border-secondary)';
+const HAIR = 'var(--color-border-tertiary)';
 const DIM = 'var(--color-text-tertiary)';
+const SUB = 'var(--color-text-secondary)';
 const TEXT = 'var(--color-text-primary)';
+const FONT = 'var(--font-sans)';
+const BG = 'var(--color-background-primary)';
 
 function el(name, attrs) {
   const e = document.createElementNS(NS, name);
@@ -138,12 +148,13 @@ function el(name, attrs) {
 }
 
 function text(x, y, content, opts) {
+  opts = opts || {};
   const t = el('text', {
     x, y,
-    'text-anchor': opts.anchor || 'middle',
-    'font-size': opts.size || 12,
+    'text-anchor': opts.anchor || 'start',
+    'font-size': opts.size || 13,
     fill: opts.fill || TEXT,
-    'font-family': 'var(--font-sans)'
+    'font-family': FONT
   });
   if (opts.weight) t.setAttribute('font-weight', opts.weight);
   t.textContent = content;
@@ -156,84 +167,92 @@ function tspan(content, attrs) {
   return t;
 }
 
-let y = 35;
-decisions.forEach((d, i) => {
-  const q = el('text', { x: CX, y: y - 14, 'text-anchor': 'middle', 'font-family': 'var(--font-sans)' });
-  q.appendChild(tspan('D' + d.n + '  ', { 'font-size': 11, fill: DIM }));
-  q.appendChild(tspan(d.q, { 'font-size': 13, fill: TEXT, 'font-weight': 500 }));
+// Rough text-width estimate, used only to place the "Chosen" tag and size pivot pills.
+function estWidth(s, size) { return s.length * size * 0.56; }
+
+// The spine is created first so it renders behind everything else; its vertical
+// extent is set after the layout is known.
+const spine = el('line', { x1: SPINE_X, y1: 0, x2: SPINE_X, y2: 0, stroke: SPINE, 'stroke-width': 1.5, 'stroke-linecap': 'round' });
+svg.appendChild(spine);
+
+let y = 30;
+let firstNodeY = null;
+let lastBranchY = 30;
+
+decisions.forEach((d) => {
+  const blockTop = y - 18;
+  const nodeY = y;
+  if (firstNodeY === null) firstNodeY = nodeY;
+
+  // Hover highlight for the whole decision block; height is set once the block is laid out.
+  const row = el('rect', { x: 4, y: blockTop, width: W - 8, height: 0, rx: 8, 'class': 'row' });
+  svg.appendChild(row);
+
+  // Decision node sits on the spine.
+  svg.appendChild(el('circle', { cx: SPINE_X, cy: nodeY, r: 6, fill: ACCENT }));
+
+  // Question header: D# marker + question text, left-aligned beside the node.
+  const q = el('text', { x: Q_X, y: nodeY + 5, 'font-family': FONT });
+  q.appendChild(tspan('D' + d.n, { 'font-size': 11, fill: DIM, 'font-weight': 700 }));
+  q.appendChild(tspan('  ' + d.q, { 'font-size': 14, fill: TEXT, 'font-weight': 600 }));
   svg.appendChild(q);
 
-  svg.appendChild(el('circle', { cx: CX, cy: y, r: 8, fill: TRUNK }));
-
-  const optY = y + 76;
-  const N = d.opts.length;
-  const usableW = W - 80;
-  const xStep = usableW / N;
-  const startX = 40 + xStep / 2;
+  y += 34; // drop below the question to the first option row
 
   d.opts.forEach((opt, j) => {
-    const ox = startX + j * xStep;
-    const isPicked = j === d.picked;
-    svg.appendChild(el('line', {
-      x1: CX, y1: y + 8,
-      x2: ox, y2: optY - 7,
-      stroke: isPicked ? TRUNK : BRANCH,
-      'stroke-width': isPicked ? 2 : 1
-    }));
-    if (isPicked) {
-      svg.appendChild(el('circle', { cx: ox, cy: optY, r: 6, fill: TRUNK }));
+    const oy = y;
+    const picked = j === d.picked;
+
+    // Orthogonal stub from the spine out to the option dot.
+    svg.appendChild(el('path', { d: 'M ' + SPINE_X + ' ' + oy + ' H ' + OPT_X, fill: 'none', stroke: HAIR, 'stroke-width': 1.25 }));
+
+    if (picked) {
+      svg.appendChild(el('circle', { cx: OPT_X, cy: oy, r: 5, fill: ACCENT }));
     } else {
-      svg.appendChild(el('circle', { cx: ox, cy: optY, r: 4, fill: 'none', stroke: DIM, 'stroke-width': 1.5 }));
+      svg.appendChild(el('circle', { cx: OPT_X, cy: oy, r: 4, fill: BG, stroke: DIM, 'stroke-width': 1.5 }));
     }
-    svg.appendChild(text(ox, optY + 22, opt, {
-      size: 11,
-      fill: isPicked ? TEXT : DIM,
-      weight: isPicked ? 500 : 400
+
+    svg.appendChild(text(LABEL_X, oy + 4, opt, {
+      size: 13,
+      fill: picked ? TEXT : DIM,
+      weight: picked ? 600 : 400
     }));
+
+    if (picked) {
+      const tagX = LABEL_X + estWidth(opt, 13) + 12;
+      const tagW = 50;
+      svg.appendChild(el('rect', { x: tagX, y: oy - 9, width: tagW, height: 17, rx: 5, fill: 'var(--color-border-info)' }));
+      svg.appendChild(text(tagX + tagW / 2, oy + 3.5, 'Chosen', { size: 10, weight: 600, fill: TEXT, anchor: 'middle' }));
+    }
+
+    lastBranchY = oy;
+    y += 30;
   });
 
-  if (d.picked !== null && d.picked !== undefined) {
-    const pickedX = startX + d.picked * xStep;
-    if (i < decisions.length - 1) {
-      const nextY = y + 180;
-      svg.appendChild(el('line', {
-        x1: pickedX, y1: optY + 6,
-        x2: CX, y2: nextY - 30,
-        stroke: TRUNK,
-        'stroke-width': 2
-      }));
-      y = nextY;
-    } else {
-      y = optY + 40;
-    }
-  } else if (d.pivot) {
-    const pivotY = optY + 60;
-    const pivotText = '↳ ' + d.pivot;
-    const charW = 6.5;
-    const padX = 12;
-    const rectW = pivotText.length * charW + padX * 2;
-    const rectX = CX - rectW / 2;
-    svg.appendChild(el('rect', {
-      x: rectX, y: pivotY - 13, width: rectW, height: 24,
-      rx: 6, fill: 'var(--color-background-warning)'
-    }));
-    svg.appendChild(text(CX, pivotY + 3, pivotText, { size: 11, weight: 500, fill: TEXT }));
-    if (i < decisions.length - 1) {
-      const nextY = pivotY + 70;
-      svg.appendChild(el('line', {
-        x1: CX, y1: pivotY + 14,
-        x2: CX, y2: nextY - 30,
-        stroke: BRANCH, 'stroke-width': 1.5
-      }));
-      y = nextY;
-    } else {
-      y = pivotY + 30;
-    }
+  // Pivot tag — only when nothing was picked. Neutral styling: a redirect, not an error.
+  if ((d.picked === null || d.picked === undefined) && d.pivot) {
+    const py = y;
+    const label = '↳ ' + d.pivot;
+    const w = estWidth(label, 11.5) + 22;
+    svg.appendChild(el('path', { d: 'M ' + SPINE_X + ' ' + py + ' H ' + OPT_X, fill: 'none', stroke: HAIR, 'stroke-width': 1.25 }));
+    svg.appendChild(el('rect', { x: OPT_X, y: py - 11, width: w, height: 22, rx: 6, fill: 'var(--color-background-secondary)', stroke: HAIR, 'stroke-width': 1 }));
+    svg.appendChild(text(OPT_X + 11, py + 4, label, { size: 11.5, weight: 500, fill: SUB }));
+    lastBranchY = py;
+    y += 30;
   }
+
+  // Size the hover row to cover the block we just laid out.
+  row.setAttribute('height', Math.max(0, (y - 8) - blockTop));
+
+  y += 18; // gap before the next decision
 });
 
-svg.setAttribute('viewBox', '0 0 ' + W + ' ' + (y + 30));
-svg.setAttribute('height', y + 30);
+spine.setAttribute('y1', firstNodeY === null ? 0 : firstNodeY);
+spine.setAttribute('y2', lastBranchY);
+
+const H = y + 12;
+svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+svg.setAttribute('height', H);
 </script>
 ```
 
