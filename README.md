@@ -8,9 +8,9 @@ When you iterate with Claude over many turns — building a webapp, designing a 
 - Rejected options **branch off** as short dead-ends.
 - **Pivot badges** mark moments where you abandoned all options and changed direction.
 
-![Example output — a slice from a real chat](./preview.png)
+![chat-decisions showcase](./showcase_v2.gif)
 
-*A slice from a chat where the plugin was used to recap UI design decisions for a webapp.*
+*Running `/chat-decisions` on a working chat — it reads the conversation and renders every decision as a tree.*
 
 ## Install
 
