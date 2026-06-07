@@ -2,11 +2,11 @@
 
 A Cowork / Claude Code plugin that visualizes the decisions you've made in a chat as an interactive tree.
 
-When you iterate with Claude over many turns — building a webapp, designing a project, scoping a research direction — you make a lot of small choices. Claude tends to present these as numbered options ("here are three approaches: A, B, C"), and you pick one each time. This plugin extracts those choice-points from the conversation and renders them as a vertical trunk-and-branches SVG:
+When you iterate with Claude over many turns — building a webapp, designing a project, scoping a research direction — you make a lot of small choices. Claude tends to present these as numbered options ("here are three approaches: A, B, C"), and you pick one each time. This plugin extracts those choice-points from the conversation and renders them as a vertical decision tree:
 
-- Picked options form a **trunk** running top to bottom.
-- Rejected options **branch off** as short dead-ends.
-- **Pivot badges** mark moments where you abandoned all options and changed direction.
+- A single **spine** runs straight down through every decision in order.
+- Each decision's **options branch off to the right**; the one you chose is marked **Chosen** and the rest are dimmed as *not taken*.
+- **Pivot tags** mark moments where you abandoned all the options and changed direction.
 
 ![chat-decisions showcase](./showcase_v2.gif)
 
@@ -73,7 +73,7 @@ The extraction rules — what counts as a choice-point vs. what doesn't, how to 
 
 ## Versioning
 
-Current version: **1.2.0**. Semantic versioning. Release notes in the GitHub Releases tab.
+Current version: **1.3.0**. Semantic versioning. Release notes in the GitHub Releases tab.
 
 ## Contributing
 
